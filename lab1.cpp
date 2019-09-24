@@ -1,5 +1,5 @@
 //
-//modified by:
+//modified by: Loay Samha
 //date:
 //
 //3350 Spring 2019 Lab-1
@@ -39,9 +39,11 @@ using namespace std;
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+#include "fonts.h"
 
-const int MAX_PARTICLES = 2000;
-const float GRAVITY     = 0.1;
+const int MAX_BARS = 5;
+const int MAX_PARTICLES = 999999;
+const float GRAVITY     = 1;
 
 //some structures
 
@@ -63,7 +65,7 @@ struct Particle {
 class Global {
 public:
 	int xres, yres;
-	Shape box;
+	Shape box[MAX_BARS];
 	Particle particle[MAX_PARTICLES];
 	int n;
 	Global();
@@ -123,11 +125,30 @@ Global::Global()
 	xres = 800;
 	yres = 600;
 	//define a box shape
-	box.width = 100;
-	box.height = 10;
-	box.center.x = 120 + 5*65;
-	box.center.y = 500 - 5*60;
-	n = 0;
+    for(int i=0; i < MAX_BARS; i++) {
+    box[i].width = 70;
+	box[i].height = 7;
+    }
+	//box 1
+	box[0].center.x = 150;
+	box[0].center.y = 500;
+    //box 2
+	box[1].center.x = 250;
+	box[1].center.y = 400;
+	//box 3
+	box[2].center.x = 350;
+	box[2].center.y = 300;
+    //box 4
+	box[3].center.x = 450;
+	box[3].center.y = 200;
+    //box 5
+	box[4].center.x = 550;
+	box[4].center.y = 100;
+	
+    
+    
+    
+    n = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -207,6 +228,9 @@ void init_opengl(void)
 	glOrtho(0, g.xres, 0, g.yres, -1, 1);
 	//Set the screen background color
 	glClearColor(0.1, 0.1, 0.1, 1.0);
+    //Allowing the fonts
+    glEnable(GL_TEXTURE_2D);
+    initialize_fonts();
 }
 
 void makeParticle(int x, int y)
@@ -220,8 +244,8 @@ void makeParticle(int x, int y)
 	Particle *p = &g.particle[g.n];
 	p->s.center.x = x;
 	p->s.center.y = y;
-	p->velocity.y = ((double)rand()/(double)RAND_MAX) - 0.5;
-	p->velocity.x = ((double)rand()/(double)RAND_MAX) - 0.5 + 0.2; 
+	p->velocity.y = ((double)rand()/(double)RAND_MAX) * 5;
+	p->velocity.x = ((double)rand()/(double)RAND_MAX) * 5; 
 	++g.n;
 }
 
@@ -245,6 +269,15 @@ void check_mouse(XEvent *e)
 		if (e->xbutton.button==1) {
 			//Left button was pressed.
 			int y = g.yres - e->xbutton.y;
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			makeParticle(e->xbutton.x, y);
+			
 			makeParticle(e->xbutton.x, y);
 			makeParticle(e->xbutton.x, y);
 			makeParticle(e->xbutton.x, y);
@@ -307,19 +340,18 @@ void movement()
 	p->velocity.y -= GRAVITY;
 	//check for collision with shapes...
 	//Shape *s;
-	Shape *s= &g.box;
+    for (int i=0; i < MAX_BARS; i++) {
+	Shape *s= &g.box[i];
 	if(p->s.center.y < s->center.y + s->height &&
+       p->s.center.y > s->center.y - s->height &&
 		p->s.center.x > s->center.x - s->width &&
-		p->s.center.x < s->center.x + s->width)
-	{
-		p->velocity.y = -(p->velocity.y*0.8);
+		p->s.center.x < s->center.x + s->width) {
+        
+		p->s.center.y = s->center.y + s->height;
+	        p->velocity.y = -(p->velocity.y*0.1);
 		}
-
-		
-
-
-
-	//check for off-screen
+    }
+	//check for of:f-screen
 	if (p->s.center.y < 0.0) {
 		//cout << "off screen" << endl;
 		g.particle[i]= g.particle[g.n-1];
@@ -334,29 +366,31 @@ void render()
 	//Draw shapes...
 	//draw the box
 	Shape *s;
-	glColor3ub(90,140,90);
-	s = &g.box;
+	float w, h;
+	for (int i=0; i < MAX_BARS; i++){
+    glColor3ub(100,0,100);
+	s = &g.box[i];
 	glPushMatrix();
 	glTranslatef(s->center.x, s->center.y, s->center.z);
-	float w, h;
 	w = s->width;
 	h = s->height;
 	glBegin(GL_QUADS);
-		glVertex2i(-w, -h);
-		glVertex2i(-w,  h);
-		glVertex2i( w,  h);
 		glVertex2i( w, -h);
+		glVertex2i( w,  h);
+		glVertex2i(-w,  h);
+		glVertex2i(-w, -h);
 	glEnd();
 	glPopMatrix();
-	//
-	//Draw particles here
-//	if (g.n > 0) {
+    }
+	
+    //Draw particles here
+    
 	for(int i=0; i<g.n; i++){
 		//There is at least one particle to draw.
 		glPushMatrix();
-		glColor3ub(150,160,220);
+		glColor3ub(0,160,220);
 		Vec *c = &g.particle[i].s.center;
-		w = h = 2;
+		w = h = 2.2;
 		glBegin(GL_QUADS);
 			glVertex2i(c->x-w, c->y-h);
 			glVertex2i(c->x-w, c->y+h);
@@ -368,12 +402,39 @@ void render()
 	//
 	//Draw your 2D text here
 
+    const int red = 0xff0000;
+    const int yellow = 0xffff00;
+    const int green = 0x00ff00;
+    const int blue = 0x0000ff;
+    const int lightblue = 0x00ffff;
+
+    Rect re[5];
+    re[0].bot = 500 - 5;
+    re[0].left = 150 - 33;
+    re[0].center = 0; 
+    ggprint8b(&re[0], 16, lightblue, "Requirments");    
+    
+    re[1].bot = 400 - 5;
+    re[1].left = 250 - 17;
+    re[1].center = 0; 
+    ggprint8b(&re[1], 16, yellow, "Design");    
+
+    re[2].bot = 300 - 5;
+    re[2].left = 350 - 33;
+    re[2].center = 0; 
+    ggprint8b(&re[2], 16, green, "Implementation");    
 
 
+    re[3].bot = 200 - 5;
+    re[3].left = 450 - 33;
+    re[3].center = 0; 
+    ggprint8b(&re[3], 16, blue, "Testing");    
 
 
-
-
+    re[4].bot = 100 - 5;
+    re[4].left = 550 - 33;
+    re[4].center = 0; 
+    ggprint8b(&re[4], 16, red, "Maintenance");    
 
 
 }
